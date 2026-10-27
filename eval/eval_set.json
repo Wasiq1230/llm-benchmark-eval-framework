@@ -1,0 +1,217 @@
+{
+  "version": "1.0",
+  "built_on": "2026-08-09",
+  "notes": "Thirty cases. Messages are written in the register real customers use on WhatsApp: lowercase, misspelled, code-mixed English and Roman Urdu, sometimes angry. Gold labels were set by hand before any model was run. 'must_not_contain' catches invented facts; 'policy_points' lists facts the reply has to carry, each as a set of alternative surface forms.",
+  "cases": [
+    {
+      "id": "C01", "lang": "en", "difficulty": "easy",
+      "message": "where is my parcel RGX-4471902 going to karachi",
+      "gold": { "intent": "track_status", "tracking_id": "RGX-4471902", "city": "Karachi", "cod_amount_pkr": null, "action": "create_ticket" },
+      "policy_points": [["check", "checking", "look", "dekh"], ["update", "inform", "batayen", "bata"]],
+      "must_not_contain": ["out for delivery", "arriving", "will be delivered on", "reached", "at the hub", "tomorrow"]
+    },
+    {
+      "id": "C02", "lang": "ur", "difficulty": "easy",
+      "message": "bhai mera parcel kahan hai 3 din ho gaye RGX8830115",
+      "gold": { "intent": "delayed_delivery", "tracking_id": "RGX8830115", "city": null, "cod_amount_pkr": null, "action": "create_ticket" },
+      "policy_points": [["check", "dekh", "confirm"], ["update", "bata", "batayen", "itla"]],
+      "must_not_contain": ["kal", "tomorrow", "aaj sham", "delivered", "out for delivery"]
+    },
+    {
+      "id": "C03", "lang": "en", "difficulty": "medium",
+      "message": "i need to change delivery address for RGX-2210044, rider hasnt come yet. new address is in DHA phase 5 lahore",
+      "gold": { "intent": "address_change", "tracking_id": "RGX-2210044", "city": "Lahore", "cod_amount_pkr": null, "action": "create_ticket" },
+      "policy_points": [["once", "free", "no charge", "first attempt", "before"], ["address"]],
+      "must_not_contain": ["500", "redelivery charge of", "rs 200", "cannot be changed"]
+    },
+    {
+      "id": "C04", "lang": "en", "difficulty": "medium",
+      "message": "rider already attempted once yesterday and i missed it. can i still change the address? tracking RGX-2210099",
+      "gold": { "intent": "address_change", "tracking_id": "RGX-2210099", "city": null, "cod_amount_pkr": null, "action": "create_ticket" },
+      "policy_points": [["redelivery", "charge", "fee"], ["operations", "team", "confirm", "confirmed"]],
+      "must_not_contain": ["free of charge", "no charge", "rs ", "pkr 2", "pkr 3", "pkr 5"]
+    },
+    {
+      "id": "C05", "lang": "mix", "difficulty": "medium",
+      "message": "COD amount 8500 tha lekin rider ne 9000 mang liya. ye kya scene hai RGX-7719023",
+      "gold": { "intent": "cod_query", "tracking_id": "RGX-7719023", "city": null, "cod_amount_pkr": 8500, "action": "escalate_human" },
+      "policy_points": [["team", "investigate", "check", "dekh", "senior", "escalate"]],
+      "must_not_contain": ["refund kar diya", "already refunded", "rider was correct", "9000 sahi"]
+    },
+    {
+      "id": "C06", "lang": "en", "difficulty": "easy",
+      "message": "when do i get my cod money as a seller? shipped 40 parcels this week",
+      "gold": { "intent": "cod_query", "tracking_id": null, "city": null, "cod_amount_pkr": null, "action": "resolve_with_info" },
+      "policy_points": [["tuesday", "friday"], ["cycle", "remit", "payout", "transfer"]],
+      "must_not_contain": ["monday", "wednesday", "thursday", "within 24 hours", "instantly"]
+    },
+    {
+      "id": "C07", "lang": "en", "difficulty": "hard",
+      "message": "my laptop arrived with a cracked screen. box was crushed. RGX-5560871. delivered this morning. i want my money back or i am going to consumer court",
+      "gold": { "intent": "damaged_parcel", "tracking_id": "RGX-5560871", "city": null, "cod_amount_pkr": null, "action": "escalate_human" },
+      "policy_points": [["photo", "photograph", "picture", "image", "tasveer"], ["48", "forty-eight", "two days"]],
+      "must_not_contain": ["we will refund", "refund has been", "claim approved", "not our responsibility", "we are not liable"]
+    },
+    {
+      "id": "C08", "lang": "ur", "difficulty": "medium",
+      "message": "kal pickup karwana hai 12 parcels hain gulberg lahore se",
+      "gold": { "intent": "pickup_request", "tracking_id": null, "city": "Lahore", "cod_amount_pkr": null, "action": "create_ticket" },
+      "policy_points": [["pickup", "uthai", "collect"]],
+      "must_not_contain": ["11 baje", "10am", "rider aa jayega 2 baje", "confirmed for 9"]
+    },
+    {
+      "id": "C09", "lang": "en", "difficulty": "medium",
+      "message": "if i book a pickup at 1pm today will someone come today",
+      "gold": { "intent": "pickup_request", "tracking_id": null, "city": null, "cod_amount_pkr": null, "action": "resolve_with_info" },
+      "policy_points": [["2pm", "2 pm", "14:00", "before 2"], ["same day", "same working day", "today"]],
+      "must_not_contain": ["next day only", "tomorrow morning", "3pm", "5pm"]
+    },
+    {
+      "id": "C10", "lang": "en", "difficulty": "medium",
+      "message": "can you pick up on sunday",
+      "gold": { "intent": "pickup_request", "tracking_id": null, "city": null, "cod_amount_pkr": null, "action": "resolve_with_info" },
+      "policy_points": [["sunday"], ["not", "no ", "closed", "non-operating", "nahi"]],
+      "must_not_contain": ["yes we can", "sunday pickup is available", "sure, sunday"]
+    },
+    {
+      "id": "C11", "lang": "en", "difficulty": "easy",
+      "message": "how much to send 2kg from islamabad to quetta",
+      "gold": { "intent": "rate_query", "tracking_id": null, "city": "Quetta", "cod_amount_pkr": null, "action": "create_ticket" },
+      "policy_points": [["rate", "price", "quote", "tariff", "charges"]],
+      "must_not_contain": ["rs 350", "rs 450", "pkr 3", "pkr 4", "pkr 5", "it will cost"]
+    },
+    {
+      "id": "C12", "lang": "mix", "difficulty": "hard",
+      "message": "RGX-1102338 aur RGX-1102339 dono stuck hain multan mein. dono ka status batao",
+      "gold": { "intent": "track_status", "tracking_id": "RGX-1102338", "city": "Multan", "cod_amount_pkr": null, "action": "create_ticket" },
+      "policy_points": [["check", "dekh", "confirm"], ["dono", "both", "two", "2 "]],
+      "must_not_contain": ["delivered", "out for delivery", "kal tak", "by tomorrow"]
+    },
+    {
+      "id": "C13", "lang": "en", "difficulty": "hard",
+      "message": "your rider was extremely rude and shouted at my mother at the gate. this is unacceptable. RGX-3390471",
+      "gold": { "intent": "out_of_scope", "tracking_id": "RGX-3390471", "city": null, "cod_amount_pkr": null, "action": "escalate_human" },
+      "policy_points": [["sorry", "apolog", "muaf", "regret"]],
+      "must_not_contain": ["rider has been fired", "we have suspended", "action has been taken", "he will be fined"]
+    },
+    {
+      "id": "C14", "lang": "en", "difficulty": "easy",
+      "message": "i want to return the shoes i received, wrong size. order RGX-9987120, cod was 4200",
+      "gold": { "intent": "refund_return", "tracking_id": "RGX-9987120", "city": null, "cod_amount_pkr": 4200, "action": "refund_request" },
+      "policy_points": [["return", "wapas", "seller", "shipper", "merchant"]],
+      "must_not_contain": ["refunded to your account", "money has been sent", "processed your refund"]
+    },
+    {
+      "id": "C15", "lang": "ur", "difficulty": "medium",
+      "message": "mera parcel 6 din se same status pe hai. RGX-6640012 faisalabad. paisay wapas chahiye",
+      "gold": { "intent": "delayed_delivery", "tracking_id": "RGX-6640012", "city": "Faisalabad", "cod_amount_pkr": null, "action": "escalate_human" },
+      "policy_points": [["check", "dekh", "team", "investigate"]],
+      "must_not_contain": ["kal deliver", "aaj deliver", "refund kar diya", "paisay bhej diye"]
+    },
+    {
+      "id": "C16", "lang": "en", "difficulty": "hard",
+      "message": "hi, i think you guys are great. just wanted to say the rider was very polite today",
+      "gold": { "intent": "out_of_scope", "tracking_id": null, "city": null, "cod_amount_pkr": null, "action": "none" },
+      "policy_points": [["thank", "shukriya", "glad", "appreciate", "khushi"]],
+      "must_not_contain": ["tracking", "please provide your consignment", "ticket has been created"]
+    },
+    {
+      "id": "C17", "lang": "en", "difficulty": "hard",
+      "message": "do you deliver to dubai",
+      "gold": { "intent": "rate_query", "tracking_id": null, "city": "Dubai", "cod_amount_pkr": null, "action": "create_ticket" },
+      "policy_points": [["check", "confirm", "team"]],
+      "must_not_contain": ["yes we deliver to dubai", "no we do not deliver internationally", "3 to 5 days", "aed"]
+    },
+    {
+      "id": "C18", "lang": "mix", "difficulty": "medium",
+      "message": "rider ne parcel kisi aur ko de diya. mujhe mila hi nahi. RGX-4405523 cod 15000 tha",
+      "gold": { "intent": "damaged_parcel", "tracking_id": "RGX-4405523", "city": null, "cod_amount_pkr": 15000, "action": "escalate_human" },
+      "policy_points": [["team", "investigate", "check", "dekh", "senior"]],
+      "must_not_contain": ["refund kar diya", "we have refunded", "rider ko nikal diya", "delivered successfully"]
+    },
+    {
+      "id": "C19", "lang": "en", "difficulty": "easy",
+      "message": "tracking number RGX-8801234 please update",
+      "gold": { "intent": "track_status", "tracking_id": "RGX-8801234", "city": null, "cod_amount_pkr": null, "action": "create_ticket" },
+      "policy_points": [["check", "checking", "look"], ["update", "inform", "back to you"]],
+      "must_not_contain": ["in transit", "out for delivery", "arriving today", "at karachi hub"]
+    },
+    {
+      "id": "C20", "lang": "en", "difficulty": "hard",
+      "message": "i already told you my number is RGX-7712009 and i already said i live in peshawar. why do you keep asking",
+      "gold": { "intent": "track_status", "tracking_id": "RGX-7712009", "city": "Peshawar", "cod_amount_pkr": null, "action": "create_ticket" },
+      "policy_points": [["check", "checking", "look"]],
+      "must_not_contain": ["please provide your tracking", "kindly share your consignment number", "what city", "which city"]
+    },
+    {
+      "id": "C21", "lang": "ur", "difficulty": "medium",
+      "message": "COD ka paisa card se de sakta hun ya cash hi lena hai",
+      "gold": { "intent": "cod_query", "tracking_id": null, "city": null, "cod_amount_pkr": null, "action": "resolve_with_info" },
+      "policy_points": [["card"], ["cash"]],
+      "must_not_contain": ["sirf cash", "only cash", "card accept nahi"]
+    },
+    {
+      "id": "C22", "lang": "en", "difficulty": "medium",
+      "message": "parcel box was wet and the papers inside are ruined. RGX-2298871. delivered 4 days ago",
+      "gold": { "intent": "damaged_parcel", "tracking_id": "RGX-2298871", "city": null, "cod_amount_pkr": null, "action": "escalate_human" },
+      "policy_points": [["48", "forty-eight", "two days"]],
+      "must_not_contain": ["claim approved", "we will pay", "your claim is valid", "we will refund"]
+    },
+    {
+      "id": "C23", "lang": "en", "difficulty": "hard",
+      "message": "what is the weather in lahore today",
+      "gold": { "intent": "out_of_scope", "tracking_id": null, "city": "Lahore", "cod_amount_pkr": null, "action": "none" },
+      "policy_points": [["courier", "parcel", "delivery", "shipment", "help with"]],
+      "must_not_contain": ["degrees", "sunny", "celsius", "rain expected", "humidity"]
+    },
+    {
+      "id": "C24", "lang": "mix", "difficulty": "medium",
+      "message": "pickup book karni hai aaj, 3 baj gaye hain. kya aaj ho jaye ga?",
+      "gold": { "intent": "pickup_request", "tracking_id": null, "city": null, "cod_amount_pkr": null, "action": "resolve_with_info" },
+      "policy_points": [["2", "do baje"], ["kal", "next working day", "tomorrow", "agle"]],
+      "must_not_contain": ["haan aaj ho jaye ga", "yes today", "rider aa raha hai"]
+    },
+    {
+      "id": "C25", "lang": "en", "difficulty": "easy",
+      "message": "need a pickup from sialkot tomorrow 9am, around 30 boxes",
+      "gold": { "intent": "pickup_request", "tracking_id": null, "city": "Sialkot", "cod_amount_pkr": null, "action": "create_ticket" },
+      "policy_points": [["pickup", "collection"], ["sialkot", "30", "thirty"]],
+      "must_not_contain": ["confirmed for 9am", "your pickup is booked", "rider assigned"]
+    },
+    {
+      "id": "C26", "lang": "en", "difficulty": "hard",
+      "message": "RGX-3312890 shows delivered but i never received anything. cod 22000 was deducted from my card. i am filing a chargeback today",
+      "gold": { "intent": "damaged_parcel", "tracking_id": "RGX-3312890", "city": null, "cod_amount_pkr": 22000, "action": "escalate_human" },
+      "policy_points": [["team", "investigate", "senior", "escalate", "priority"]],
+      "must_not_contain": ["you will get your money", "we have reversed", "chargeback is not allowed", "22000 refunded"]
+    },
+    {
+      "id": "C27", "lang": "en", "difficulty": "medium",
+      "message": "i moved houses. can you deliver to my office instead. no rider has come yet. RGX-5501133 hyderabad",
+      "gold": { "intent": "address_change", "tracking_id": "RGX-5501133", "city": "Hyderabad", "cod_amount_pkr": null, "action": "create_ticket" },
+      "policy_points": [["once", "free", "no charge", "first attempt", "before"]],
+      "must_not_contain": ["charge applies", "redelivery fee", "not possible"]
+    },
+    {
+      "id": "C28", "lang": "ur", "difficulty": "hard",
+      "message": "aap logon ki service bekaar hai. main facebook pe post kar raha hun. RGX-9920014 do hafte se pending",
+      "gold": { "intent": "delayed_delivery", "tracking_id": "RGX-9920014", "city": null, "cod_amount_pkr": null, "action": "escalate_human" },
+      "policy_points": [["muaf", "sorry", "apolog", "maazrat", "regret"]],
+      "must_not_contain": ["post mat karain", "do not post", "kal mil jaye ga", "delivered ho gaya"]
+    },
+    {
+      "id": "C29", "lang": "en", "difficulty": "medium",
+      "message": "what are your charges for cod handling as a seller",
+      "gold": { "intent": "rate_query", "tracking_id": null, "city": null, "cod_amount_pkr": null, "action": "create_ticket" },
+      "policy_points": [["team", "confirm", "share", "check", "account"]],
+      "must_not_contain": ["1%", "2%", "rs 50", "pkr 5", "no charge", "free"]
+    },
+    {
+      "id": "C30", "lang": "mix", "difficulty": "hard",
+      "message": "mera return pickup schedule karo, seller ne approve kar diya hai. RGX-6678201, cod 3300 refund bhi chahiye",
+      "gold": { "intent": "refund_return", "tracking_id": "RGX-6678201", "city": null, "cod_amount_pkr": 3300, "action": "refund_request" },
+      "policy_points": [["pickup", "collect", "uthai"], ["seller", "shipper", "merchant"]],
+      "must_not_contain": ["refund ho gaya", "money sent", "3300 transferred", "kal aa jayega rider"]
+    }
+  ]
+}

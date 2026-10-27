@@ -1,0 +1,26 @@
+{
+  "_note": "USD per 1,000,000 tokens, standard tier, short context. Prices move. Re-check every rate against the vendor page on the morning of your run and update 'checked_on'. The report prints this date next to every cost figure.",
+  "checked_on": "2026-08-09",
+  "sources": {
+    "openai": "https://openai.com/api/pricing/",
+    "anthropic": "https://www.anthropic.com/pricing",
+    "google": "https://ai.google.dev/gemini-api/docs/pricing"
+  },
+  "models": {
+    "gpt-5.6-luna":              { "input": 0.20, "output": 1.20, "vendor": "openai" },
+    "gpt-5.6-terra":             { "input": 2.00, "output": 12.00, "vendor": "openai" },
+    "gpt-5.6-sol":               { "input": 5.00, "output": 30.00, "vendor": "openai" },
+    "claude-haiku-4-5-20251001": { "input": 1.00, "output": 5.00, "vendor": "anthropic" },
+    "claude-sonnet-5":           { "input": 3.00, "output": 15.00, "vendor": "anthropic" },
+    "claude-opus-4-8":           { "input": 5.00, "output": 25.00, "vendor": "anthropic" },
+    "gemini-3.5-flash-lite":     { "input": 0.30, "output": 2.50, "vendor": "google" },
+    "gemini-3.6-flash":          { "input": 1.50, "output": 7.50, "vendor": "google" },
+    "gemini-3.1-pro":            { "input": 2.00, "output": 12.00, "vendor": "google" }
+  },
+  "caveats": [
+    "Anthropic has published that Claude Sonnet 5 introductory pricing reverts to 3.00 / 15.00 on 1 September 2026. If your contract window crosses that date, model the reverted rate.",
+    "OpenAI bills 2x input and 1.5x output on requests above 272K input tokens. Support triage prompts are ~700 tokens, so the long-context meter does not apply here.",
+    "Gemini Pro tiers double input above 200K tokens. Flash and Flash-Lite tiers do not.",
+    "Batch tiers are roughly half price on all three vendors but are asynchronous. Support triage is synchronous, so batch pricing is out of scope for this comparison."
+  ]
+}

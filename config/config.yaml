@@ -1,0 +1,110 @@
+# Week 4 vendor evaluation - configuration
+# SafeX Solutions internship, Group 57
+#
+# Change client.name below to the courier operator you used in Week 3.
+# Nothing else in the repo hardcodes the business name.
+
+client:
+  name: "Rahguzar Express"
+  sector: "Intra-city and inter-city courier, Pakistan"
+  monthly_support_contacts: 42000     # inbound WhatsApp + web chat, per month
+  agent_cost_pkr_per_contact: 34      # loaded cost of one human-handled contact
+  target_deflection: 0.60             # share of contacts we want handled without an agent
+  usd_to_pkr: 283.0                   # update on the day of the run
+
+use_case:
+  id: "support_triage_v1"
+  name: "Inbound courier support triage and first reply"
+  description: >
+    One inbound customer message in English, Roman Urdu, or a mix of the two.
+    The model returns strict JSON: an intent label, extracted entities, a routing
+    action, and a customer-facing first reply. The JSON goes to the ticketing
+    system; the reply goes to the customer.
+
+# Three vendors, matched on tier, not on flagship status.
+# We are buying high-volume classification and short replies, so the fair
+# comparison is each vendor's small/fast tier.
+providers:
+  - key: openai
+    label: "OpenAI"
+    model: "gpt-5.6-luna"
+    base_url: "https://api.openai.com/v1"
+    api_key_env: "OPENAI_API_KEY"
+  - key: anthropic
+    label: "Anthropic"
+    model: "claude-haiku-4-5-20251001"
+    base_url: "https://api.anthropic.com/v1"
+    api_key_env: "ANTHROPIC_API_KEY"
+  - key: google
+    label: "Google"
+    model: "gemini-3.5-flash-lite"
+    base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
+    api_key_env: "GEMINI_API_KEY"
+
+# Optional: route everything through the local LiteLLM gateway instead of
+# hitting three SDKs. Set gateway.enabled to true and give each provider a
+# model_alias that matches a model_name in your LiteLLM config.yaml.
+gateway:
+  enabled: false
+  base_url: "http://localhost:4000/v1"
+  api_key_env: "GATEWAY_API_KEY"
+  aliases:
+    openai: "gpt-luna"
+    anthropic: "claude-haiku"
+    google: "gemini-flash-lite"
+
+run:
+  repeats: 3          # each case is sent this many times, to every provider
+  temperature: 0.0
+  max_tokens: 400
+  timeout_s: 60
+  concurrency: 4
+  retry_on_429: 3
+
+# Decision weights. These are the ones a courier COO would defend in a budget
+# meeting: a wrong intent creates a wrong ticket, so accuracy dominates.
+weights:
+  accuracy: 0.40
+  cost: 0.25
+  latency: 0.20
+  integration: 0.15
+
+# Accuracy is not one number. These sub-weights build it.
+accuracy_components:
+  json_valid: 0.20        # hard gate, a malformed reply is a dropped ticket
+  intent_exact: 0.25
+  entities_f1: 0.20
+  action_exact: 0.15
+  grounding: 0.10         # penalty for inventing a date, time, or fee
+  policy_points: 0.10     # required facts present in the reply
+
+# Latency budget. WhatsApp users abandon fast, so p95 is what we score on.
+latency:
+  target_p95_ms: 2500
+  fail_p95_ms: 6000
+
+# Ease of integration is scored by hand against the rubric in
+# docs/methodology.md. Fill these in after you have written the client code.
+# Scale 1 to 5. Leave a value at null and the report will show it as unscored.
+integration_scores:
+  openai:
+    sdk_quality: null
+    structured_output: null
+    docs: null
+    error_semantics: null
+    rate_limit_headroom: null
+    data_residency: null
+  anthropic:
+    sdk_quality: null
+    structured_output: null
+    docs: null
+    error_semantics: null
+    rate_limit_headroom: null
+    data_residency: null
+  google:
+    sdk_quality: null
+    structured_output: null
+    docs: null
+    error_semantics: null
+    rate_limit_headroom: null
+    data_residency: null

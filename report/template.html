@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vendor evaluation &middot; LLM support triage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#12181A; --ink-2:#2A3639; --muted:#6B7671;
+  --paper:#E6EAE5; --card:#FFFFFF;
+  --rule:#C7CDC6; --rule-2:#E4E8E2;
+  --green:#0B6E4F; --amber:#B8830C; --red:#A32A1F; --slate:#3A6E8F;
+  --pad:clamp(18px,4vw,44px);
+  --display:"Archivo",'Helvetica Neue',Arial,sans-serif;
+  --body:"IBM Plex Sans",-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,'SF Mono',Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--body);font-size:15px;line-height:1.55;
+  font-variant-numeric:tabular-nums;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 var(--pad) 90px}
+h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:-.02em;margin:0}
+h2{font-size:clamp(21px,2.4vw,27px);line-height:1.15}
+h3{font-size:16px;letter-spacing:0}
+p{margin:0 0 1em}
+a{color:var(--slate)}
+.eyebrow{
+  font-family:var(--mono);font-size:10.5px;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+}
+.mono{font-family:var(--mono)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------- consignment note header ---------- */
+.note{background:var(--ink);color:#E9EDE8}
+.note-in{max-width:1180px;margin:0 auto;padding:26px var(--pad) 0}
+.note .eyebrow{color:#8FA096}
+.note h1{
+  font-size:clamp(30px,5.2vw,54px);font-weight:800;line-height:1.02;
+  margin:14px 0 6px;color:#FBFDFA;max-width:19ch;
+}
+.note .sub{color:#9DAEA3;max-width:60ch;margin:0 0 24px;font-size:15px}
+.fields{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  border-top:1px solid #2E3B3E;
+}
+.field{padding:13px 16px 15px;border-right:1px solid #2E3B3E}
+.field:last-child{border-right:0}
+.field .k{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:#7E9089;display:block;margin-bottom:5px;
+}
+.field .v{font-family:var(--mono);font-size:13px;color:#EDF2EC;word-break:break-word}
+/* perforation strip between the note and the body */
+.perf{height:16px;background:var(--ink);position:relative}
+.perf::after{
+  content:"";position:absolute;left:0;right:0;bottom:-1px;height:16px;
+  background:radial-gradient(circle at 8px 16px, var(--paper) 7px, transparent 7.5px) repeat-x;
+  background-size:22px 16px;
+}
+
+/* ---------- provenance band ---------- */
+.band{
+  border:2px solid var(--red);background:#FBEDEB;color:#5E1710;
+  padding:14px 18px;margin:26px 0 0;display:flex;gap:14px;align-items:flex-start;
+}
+.band.ok{border-color:var(--green);background:#E9F3EE;color:#0A4632}
+.band .tag{
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  border:1.5px solid currentColor;padding:3px 7px;white-space:nowrap;flex:none;margin-top:1px;
+}
+.band p{margin:0;font-size:13.5px}
+
+section{margin-top:56px;scroll-margin-top:70px}
+.shead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+.shead .n{
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  border:1px solid var(--rule);padding:2px 6px;letter-spacing:.1em;
+}
+.lede{color:var(--ink-2);max-width:74ch;margin:10px 0 26px;font-size:15px}
+
+/* ---------- sticky rail ---------- */
+nav.rail{
+  position:sticky;top:0;z-index:20;background:rgba(230,234,229,.94);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--rule);
+  margin:0 calc(var(--pad)*-1);padding:0 var(--pad);
+}
+nav.rail ul{display:flex;gap:2px;list-style:none;margin:0;padding:0;overflow-x:auto}
+nav.rail a{
+  display:block;padding:11px 12px;font-family:var(--mono);font-size:11px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent;
+}
+nav.rail a:hover,nav.rail a:focus-visible{color:var(--ink);border-bottom-color:var(--ink)}
+
+/* ---------- provider labels (signature element) ---------- */
+.labels{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.label{
+  background:var(--card);border:1px solid var(--rule);position:relative;
+  padding:0 0 20px;overflow:hidden;
+}
+.label.win{border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
+.barcode{height:34px;border-bottom:1px solid var(--rule-2);
+  background-image:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 5px,var(--ink) 5px 6px,transparent 6px 11px,var(--ink) 11px 14px,transparent 14px 16px,var(--ink) 16px 17px,transparent 17px 23px);
+  opacity:.82;margin:0 18px;background-position:0 8px;background-repeat:repeat-x;background-size:auto 18px}
+.label .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 18px 0}
+.label .vendor{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:-.02em}
+.label .model{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:3px;word-break:break-all}
+.stamp{
+  font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;border:2.5px solid currentColor;padding:5px 9px;
+  transform:rotate(-5deg);flex:none;opacity:.9;line-height:1;text-align:center;
+}
+.stamp.r1{color:var(--green)} .stamp.r2{color:var(--amber)} .stamp.r3{color:var(--red)}
+.score-row{display:flex;align-items:flex-end;gap:10px;padding:18px 18px 4px}
+.score-row .big{font-family:var(--display);font-size:56px;font-weight:800;line-height:.86;letter-spacing:-.04em}
+.score-row .of{font-family:var(--mono);font-size:12px;color:var(--muted);padding-bottom:5px}
+.axes{padding:14px 18px 0;display:grid;gap:9px}
+.ax{display:grid;grid-template-columns:74px 1fr 44px;gap:10px;align-items:center;font-size:12px}
+.ax .k{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ax .t{height:7px;background:var(--rule-2);position:relative;overflow:hidden}
+.ax .t i{position:absolute;inset:0 auto 0 0;background:var(--slate);width:0;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.ax .v{font-family:var(--mono);font-size:11.5px;text-align:right}
+.label .foot{
+  margin:18px 18px 0;padding-top:12px;border-top:1px dashed var(--rule);
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
+}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--rule)}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--rule-2);font-size:13.5px;vertical-align:top}
+thead th{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);background:#F4F6F3;border-bottom:1px solid var(--rule);white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.rowk{font-family:var(--mono);font-size:12px;color:var(--ink-2);white-space:nowrap}
+tr.best td{background:#EFF6F2}
+.win-cell{color:var(--green);font-weight:600}
+.lose-cell{color:var(--red)}
+.chip{
+  display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;padding:2px 6px;border:1px solid var(--rule);color:var(--muted);
+}
+.chip.g{border-color:var(--green);color:var(--green)}
+.chip.r{border-color:var(--red);color:var(--red)}
+.chip.a{border-color:var(--amber);color:var(--amber)}
+
+/* ---------- charts ---------- */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:20px}
+.panel{background:var(--card);border:1px solid var(--rule);padding:18px}
+.panel h3{margin-bottom:4px}
+.panel .cap{font-size:12.5px;color:var(--muted);margin:0 0 16px}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;display:block}
+
+/* ---------- sample viewer ---------- */
+.picker{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+select,button{
+  font-family:var(--mono);font-size:12px;padding:8px 11px;
+  border:1px solid var(--rule);background:var(--card);color:var(--ink);
+}
+button{cursor:pointer}
+button:hover{border-color:var(--ink)}
+.msg{
+  background:var(--card);border:1px solid var(--rule);border-left:4px solid var(--ink);
+  padding:16px 18px;margin-bottom:18px;
+}
+.msg .t{font-size:16px;margin:6px 0 0;font-family:var(--body)}
+.outs{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.out{background:var(--card);border:1px solid var(--rule);padding:14px 16px 16px}
+.out.gold{border-color:var(--ink);border-width:1.5px}
+.out h4{margin:0 0 10px;font-family:var(--display);font-size:14px;letter-spacing:0;
+  display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+pre{
+  font-family:var(--mono);font-size:11.5px;line-height:1.6;margin:0 0 10px;
+  white-space:pre-wrap;word-break:break-word;background:#F5F7F4;padding:11px;
+  border:1px solid var(--rule-2);max-height:280px;overflow:auto;
+}
+.marks{display:flex;flex-wrap:wrap;gap:5px}
+
+.foot-note{
+  margin-top:64px;padding-top:22px;border-top:1px solid var(--rule);
+  font-size:12.5px;color:var(--muted);max-width:78ch;
+}
+ul.plain{padding-left:18px;margin:0 0 1em}
+ul.plain li{margin-bottom:7px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 40px}
+
+:focus-visible{outline:2px solid var(--slate);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media print{
+  nav.rail{display:none}
+  body{background:#fff}
+  section{break-inside:avoid;margin-top:34px}
+  .panel,.label,.tablewrap,.out{break-inside:avoid}
+  .band{border-width:2px}
+}
+</style>
+</head>
+<body>
+
+<header class="note">
+  <div class="note-in">
+    <span class="eyebrow" id="hd-eyebrow"></span>
+    <h1 id="hd-title"></h1>
+    <p class="sub" id="hd-sub"></p>
+    <div class="fields" id="hd-fields"></div>
+  </div>
+</header>
+<div class="perf"></div>
+
+<div class="wrap">
+  <div id="provenance"></div>
+
+  <nav class="rail" aria-label="Report sections">
+    <ul>
+      <li><a href="#verdict">Verdict</a></li>
+      <li><a href="#scorecard">Scorecard</a></li>
+      <li><a href="#accuracy">Accuracy</a></li>
+      <li><a href="#speed">Speed</a></li>
+      <li><a href="#money">Money</a></li>
+      <li><a href="#sensitivity">Sensitivity</a></li>
+      <li><a href="#outputs">Sample outputs</a></li>
+      <li><a href="#failures">Failures</a></li>
+      <li><a href="#method">Method</a></li>
+    </ul>
+  </nav>
+
+  <section id="verdict">
+    <div class="shead"><span class="n">01</span><h2>Verdict</h2></div>
+    <p class="lede" id="verdict-lede"></p>
+    <div class="labels" id="labels"></div>
+  </section>
+
+  <section id="scorecard">
+    <div class="shead"><span class="n">02</span><h2>Comparison table</h2></div>
+    <p class="lede">One row per measure. The shaded column is the best result on that row. Every figure comes from the same 
+      run of the same prompt against the same cases.</p>
+    <div class="tablewrap"><table id="scorecard-table"></table></div>
+  </section>
+
+  <section id="accuracy">
+    <div class="shead"><span class="n">03</span><h2>Where the accuracy comes from</h2></div>
+    <p class="lede" id="acc-lede"></p>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Component scores</h3>
+        <p class="cap">Six measures, each scored 0 to 1 on every call, then averaged.</p>
+        <div id="chart-components"></div>
+      </div>
+      <div class="panel">
+        <h3>Grounding and stability</h3>
+        <p class="cap">Grounding is the share of replies that invented nothing. Stability is the share of cases where 
+          repeated calls returned the same intent.</p>
+        <div id="chart-grounding"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="speed">
+    <div class="shead"><span class="n">04</span><h2>Response time</h2></div>
+    <p class="lede" id="speed-lede"></p>
+    <div class="panel">
+      <h3>Latency distribution</h3>
+      <p class="cap">Bar spans p50 to p95. The notch is the median, the tick at the right is p99. 
+        Measured on the network round trip only.</p>
+      <div id="chart-latency"></div>
+    </div>
+  </section>
+
+  <section id="money">
+    <div class="shead"><span class="n">05</span><h2>What it costs</h2></div>
+    <p class="lede" id="money-lede"></p>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Monthly API spend at current volume</h3>
+        <p class="cap" id="money-cap"></p>
+        <div id="chart-cost"></div>
+      </div>
+      <div class="panel">
+        <h3>Against the human baseline</h3>
+        <p class="cap">What the same contact volume costs today, and what is left after the deflection target is met.</p>
+        <div id="biz"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sensitivity">
+    <div class="shead"><span class="n">06</span><h2>Does the answer survive a different set of priorities?</h2></div>
+    <p class="lede" id="sens-lede"></p>
+    <div class="tablewrap"><table id="sens-table"></table></div>
+  </section>
+
+  <section id="outputs">
+    <div class="shead"><span class="n">07</span><h2>Sample outputs</h2></div>
+    <p class="lede">The same customer message, sent to all three. Pick a case to see what each one returned and how it 
+      was scored.</p>
+    <div class="picker">
+      <label class="eyebrow" for="case-select">Case</label>
+      <select id="case-select"></select>
+      <button id="prev-case" type="button">Previous</button>
+      <button id="next-case" type="button">Next</button>
+      <button id="worst-case" type="button">Jump to biggest disagreement</button>
+    </div>
+    <div class="msg" id="case-msg"></div>
+    <div class="outs" id="case-outs"></div>
+  </section>
+
+  <section id="failures">
+    <div class="shead"><span class="n">08</span><h2>Failure log</h2></div>
+    <p class="lede">Every case each vendor got wrong, by failure type. A grounding failure is the serious one: the model 
+      told a customer something it had no way of knowing.</p>
+    <div class="tablewrap"><table id="fail-table"></table></div>
+  </section>
+
+  <section id="method">
+    <div class="shead"><span class="n">09</span><h2>Method and limits</h2></div>
+    <div class="two" id="method-body"></div>
+  </section>
+
+  <p class="foot-note" id="foot"></p>
+</div>
+
+<script>
+const DATA = /*__DATA__*/ null;
+
+/* ---------- helpers ---------- */
+const $  = s => document.querySelector(s);
+const el = (t,c,h) => { const n=document.createElement(t); if(c)n.className=c; if(h!==undefined)n.innerHTML=h; return n; };
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct = (v,d=1) => v==null ? "&ndash;" : (v*100).toFixed(d)+"%";
+const n1  = (v,d=0) => v==null ? "&ndash;" : Number(v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+const usd = (v,d=2) => v==null ? "&ndash;" : "$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+const pkr = v => v==null ? "&ndash;" : "Rs "+Number(v).toLocaleString("en-US",{maximumFractionDigits:0});
+const COL = {openai:"#3A6E8F", anthropic:"#0B6E4F", google:"#B8830C"};
+const RANK_WORD = ["Recommended","Runner-up","Not selected"];
+
+const P = DATA.providers;
+const byKey = Object.fromEntries(P.map(p=>[p.key,p]));
+
+/* ---------- header ---------- */
+$("#hd-eyebrow").textContent = "Vendor evaluation \u2013 " + DATA.client.name;
+$("#hd-title").textContent = "Which language model should answer our customers first?";
+$("#hd-sub").textContent = DATA.use_case.description.trim();
+
+const runDate = DATA.run_finished_utc ? new Date(DATA.run_finished_utc) : null;
+const fields = [
+  ["Use case", DATA.use_case.id],
+  ["Cases", DATA.n_cases + " \u00d7 " + DATA.repeats + " repeats"],
+  ["Vendors", P.length],
+  ["Run finished", runDate ? runDate.toISOString().slice(0,16).replace("T"," ")+" UTC" : "\u2013"],
+  ["Prompt sha", DATA.prompt_sha],
+  ["Eval set sha", DATA.eval_set_sha],
+  ["Prices checked", DATA.pricing_checked_on]
+];
+$("#hd-fields").innerHTML = fields.map(([k,v]) =>
+  `<div class="field"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join("");
+
+/* ---------- provenance ---------- */
+const demo = String(DATA.provenance).toUpperCase().includes("DEMO");
+$("#provenance").innerHTML = demo
+  ? `<div class="band"><span class="tag">Synthetic demo</span><p><strong>These numbers are invented.</strong>
+     They were produced by <span class="mono">bench/make_demo_results.py</span> so the layout could be reviewed before
+     any API call was spent. No vendor was measured. Run <span class="mono">bench/run_benchmark.py</span>, then rebuild
+     this page against <span class="mono">results/results.json</span>, before this goes anywhere near a submission or a client.</p></div>`
+  : `<div class="band ok"><span class="tag">Measured</span><p>Generated from a live run by
+     <strong>${esc(DATA.operator||"unknown")}</strong>. Prompt hash <span class="mono">${esc(DATA.prompt_sha)}</span>,
+     eval set hash <span class="mono">${esc(DATA.eval_set_sha)}</span>. Re-running with the same hashes reproduces this page.</p></div>`;
+
+/* ---------- verdict ---------- */
+const w = P[0], second = P[1];
+const gap = second ? (w.composite - second.composite) : null;
+$("#verdict-lede").innerHTML =
+  `<strong>${esc(w.label)} ${esc(w.model)}</strong> takes the weighted score at ${w.composite.toFixed(1)} out of 100`
+  + (second ? `, ${gap.toFixed(1)} points ahead of ${esc(second.label)}` : "")
+  + `. ${DATA.stable_winner
+      ? "That ranking holds under every weight profile we tested, so the recommendation does not depend on the exact weights chosen."
+      : "The ranking flips under at least one alternative weight profile, so the recommendation depends on the priorities agreed in section 06. Read that section before signing anything."}`;
+
+$("#labels").innerHTML = P.map((p,i)=>`
+  <div class="label ${i===0?"win":""}">
+    <div class="hd">
+      <div><div class="vendor">${esc(p.label)}</div><div class="model">${esc(p.model)}</div></div>
+      <div class="stamp r${Math.min(i+1,3)}">${esc(RANK_WORD[Math.min(i,2)])}</div>
+    </div>
+    <div class="barcode"></div>
+    <div class="score-row"><div class="big">${p.composite.toFixed(1)}</div><div class="of">/ 100 weighted</div></div>
+    <div class="axes">
+      ${["accuracy","cost","latency","integration"].map(k=>{
+        const v = p.axes[k];
+        return `<div class="ax">
+          <span class="k">${k}</span>
+          <span class="t"><i data-w="${v==null?0:v}" style="background:${COL[p.key]}"></i></span>
+          <span class="v">${v==null?"unscored":v.toFixed(0)}</span></div>`;
+      }).join("")}
+    </div>
+    <div class="foot">
+      <span>p95 ${p.latency.p95==null?"\u2013":n1(p.latency.p95)+" ms"}</span>
+      <span>${usd(p.cost.per_1k_usd)} / 1k calls</span>
+      <span>${p.errors} errors</span>
+    </div>
+  </div>`).join("");
+
+requestAnimationFrame(()=>document.querySelectorAll(".ax .t i").forEach(b=>b.style.width=b.dataset.w+"%"));
+
+/* ---------- scorecard ---------- */
+function scoreTable(){
+  const rows = [
+    ["Model", p=>esc(p.model), null],
+    ["Weighted score / 100", p=>p.composite.toFixed(1), "max"],
+    ["Accuracy (composite)", p=>pct(p.accuracy), "max"],
+    ["Intent exact match", p=>pct(p.components.intent_exact), "max"],
+    ["Intent 95% CI", p=>pct(p.intent_ci[0],0)+" \u2013 "+pct(p.intent_ci[1],0), null],
+    ["Entity F1", p=>pct(p.components.entities_f1), "max"],
+    ["Routing action correct", p=>pct(p.components.action_exact), "max"],
+    ["Grounded (invented nothing)", p=>pct(p.components.grounding), "max"],
+    ["Policy facts present", p=>pct(p.components.policy_points), "max"],
+    ["Valid schema", p=>pct(p.components.json_valid), "max"],
+    ["JSON returned without a fence", p=>pct(p.clean_json_rate), "max"],
+    ["Same answer across repeats", p=>pct(p.consistency), "max"],
+    ["Latency p50", p=>n1(p.latency.p50)+" ms", "min"],
+    ["Latency p95", p=>n1(p.latency.p95)+" ms", "min"],
+    ["Latency p99", p=>n1(p.latency.p99)+" ms", "min"],
+    ["Tokens in / out (mean)", p=>n1(p.tokens.input)+" / "+n1(p.tokens.output), null],
+    ["Cost per 1,000 calls", p=>usd(p.cost.per_1k_usd), "min"],
+    ["Cost per month at volume", p=>pkr(p.cost.monthly_pkr), "min"],
+    ["Integration rubric / 5", p=>p.integration_mean==null?"unscored":p.integration_mean.toFixed(1), "max"],
+    ["Failed requests", p=>p.errors+" of "+p.calls, "min"]
+  ];
+  const raw = {
+    "Weighted score / 100":p=>p.composite, "Accuracy (composite)":p=>p.accuracy,
+    "Intent exact match":p=>p.components.intent_exact, "Entity F1":p=>p.components.entities_f1,
+    "Routing action correct":p=>p.components.action_exact, "Grounded (invented nothing)":p=>p.components.grounding,
+    "Policy facts present":p=>p.components.policy_points, "Valid schema":p=>p.components.json_valid,
+    "JSON returned without a fence":p=>p.clean_json_rate, "Same answer across repeats":p=>p.consistency,
+    "Latency p50":p=>p.latency.p50, "Latency p95":p=>p.latency.p95, "Latency p99":p=>p.latency.p99,
+    "Cost per 1,000 calls":p=>p.cost.per_1k_usd, "Cost per month at volume":p=>p.cost.monthly_pkr,
+    "Integration rubric / 5":p=>p.integration_mean, "Failed requests":p=>p.errors
+  };
+  let h = "<thead><tr><th>Measure</th>"+P.map(p=>`<th class="n">${esc(p.label)}</th>`).join("")+"</tr></thead><tbody>";
+  for (const [name,fmt,dir] of rows){
+    let bestIdx = -1;
+    if (dir && raw[name]){
+      const vals = P.map(p=>raw[name](p)).map(v=>v==null?null:Number(v));
+      const usable = vals.filter(v=>v!=null);
+      if (usable.length){
+        const target = dir==="max" ? Math.max(...usable) : Math.min(...usable);
+        bestIdx = vals.indexOf(target);
+      }
+    }
+    h += `<tr><td class="rowk">${esc(name)}</td>`
+      + P.map((p,i)=>`<td class="n ${i===bestIdx?"win-cell":""}">${fmt(p)}</td>`).join("")+"</tr>";
+  }
+  $("#scorecard-table").innerHTML = h+"</tbody>";
+}
+scoreTable();
+
+/* ---------- component chart ---------- */
+const COMPS = [["intent_exact","Intent"],["entities_f1","Entities"],["action_exact","Action"],
+               ["grounding","Grounding"],["policy_points","Policy"],["json_valid","Schema"]];
+function componentChart(){
+  const rowH=34, barH=7, gap=3, left=78, W=520, H=COMPS.length*rowH+18;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Accuracy components by vendor">`;
+  COMPS.forEach(([k,lab],i)=>{
+    const y0=i*rowH+8;
+    s+=`<text x="0" y="${y0+16}" font-family="IBM Plex Mono" font-size="10" fill="#6B7671" letter-spacing="1">${lab.toUpperCase()}</text>`;
+    s+=`<line x1="${left}" y1="${y0-4}" x2="${W}" y2="${y0-4}" stroke="#E4E8E2"/>`;
+    P.forEach((p,j)=>{
+      const v=p.components[k], y=y0+j*(barH+gap);
+      s+=`<rect x="${left}" y="${y}" width="${(W-left-40)}" height="${barH}" fill="#EFF1ED"/>`;
+      s+=`<rect x="${left}" y="${y}" width="${(W-left-40)*v}" height="${barH}" fill="${COL[p.key]}"/>`;
+      if(j===0) s+=`<text x="${W-34}" y="${y+barH}" font-family="IBM Plex Mono" font-size="10" fill="#12181A">${(v*100).toFixed(0)}</text>`;
+    });
+  });
+  s+="</svg>";
+  $("#chart-components").innerHTML = s + legend();
+}
+function legend(){
+  return `<div class="legend">${P.map(p=>`<span><i style="background:${COL[p.key]}"></i>${esc(p.label)}</span>`).join("")}</div>`;
+}
+componentChart();
+
+/* ---------- grounding / stability scatter ---------- */
+function groundingChart(){
+  const W=520,H=300,m={t:16,r:16,b:44,l:52};
+  const x=v=>m.l+(W-m.l-m.r)*v, y=v=>H-m.b-(H-m.t-m.b)*v;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Grounding against stability">`;
+  for(let i=0;i<=4;i++){
+    const t=i/4;
+    s+=`<line x1="${m.l}" y1="${y(t)}" x2="${W-m.r}" y2="${y(t)}" stroke="#E4E8E2"/>`;
+    s+=`<text x="${m.l-8}" y="${y(t)+4}" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#6B7671">${(t*100).toFixed(0)}</text>`;
+    s+=`<text x="${x(t)}" y="${H-m.b+18}" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#6B7671">${(t*100).toFixed(0)}</text>`;
+  }
+  s+=`<text x="${m.l}" y="${H-6}" font-family="IBM Plex Mono" font-size="10" fill="#6B7671" letter-spacing="1">GROUNDING %</text>`;
+  s+=`<text transform="translate(12,${m.t+96}) rotate(-90)" font-family="IBM Plex Mono" font-size="10" fill="#6B7671" letter-spacing="1">STABILITY %</text>`;
+  P.forEach(p=>{
+    const cx=x(p.components.grounding), cy=y(p.consistency);
+    s+=`<circle cx="${cx}" cy="${cy}" r="8" fill="${COL[p.key]}" opacity=".9"/>`;
+    s+=`<text x="${cx+13}" y="${cy+4}" font-family="Archivo" font-size="12" font-weight="600" fill="#12181A">${esc(p.label)}</text>`;
+  });
+  s+="</svg>";
+  $("#chart-grounding").innerHTML=s;
+}
+groundingChart();
+
+/* ---------- latency chart ---------- */
+function latencyChart(){
+  const all=P.flatMap(p=>[p.latency.p99,p.latency.p95,p.latency.p50]).filter(v=>v!=null);
+  const max=Math.max(...all, DATA.latency_targets.target_p95_ms)*1.12;
+  const W=900,rowH=64,H=P.length*rowH+58,left=112,right=W-24;
+  const x=v=>left+(right-left)*(v/max);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Latency percentiles by vendor">`;
+  const tgt=DATA.latency_targets.target_p95_ms;
+  s+=`<rect x="${left}" y="10" width="${x(tgt)-left}" height="${P.length*rowH}" fill="#0B6E4F" opacity=".05"/>`;
+  s+=`<line x1="${x(tgt)}" y1="4" x2="${x(tgt)}" y2="${P.length*rowH+12}" stroke="#0B6E4F" stroke-dasharray="4 3"/>`;
+  s+=`<text x="${x(tgt)+6}" y="${P.length*rowH+26}" font-family="IBM Plex Mono" font-size="10" fill="#0B6E4F">p95 target ${tgt} ms</text>`;
+  P.forEach((p,i)=>{
+    const yc=10+i*rowH+rowH/2-6, L=p.latency;
+    if(L.p50==null) return;
+    s+=`<text x="0" y="${yc-10}" font-family="Archivo" font-size="13" font-weight="600" fill="#12181A">${esc(p.label)}</text>`;
+    s+=`<text x="0" y="${yc+8}" font-family="IBM Plex Mono" font-size="10" fill="#6B7671">p95 ${n1(L.p95)} ms</text>`;
+    s+=`<line x1="${x(L.p50)}" y1="${yc}" x2="${x(L.p99)}" y2="${yc}" stroke="${COL[p.key]}" stroke-width="1" opacity=".45"/>`;
+    s+=`<rect x="${x(L.p50)}" y="${yc-9}" width="${Math.max(2,x(L.p95)-x(L.p50))}" height="18" fill="${COL[p.key]}" opacity=".28"/>`;
+    s+=`<line x1="${x(L.p50)}" y1="${yc-13}" x2="${x(L.p50)}" y2="${yc+13}" stroke="${COL[p.key]}" stroke-width="3"/>`;
+    s+=`<line x1="${x(L.p99)}" y1="${yc-7}" x2="${x(L.p99)}" y2="${yc+7}" stroke="${COL[p.key]}" stroke-width="1.5"/>`;
+    s+=`<text x="${x(L.p99)+7}" y="${yc+4}" font-family="IBM Plex Mono" font-size="10" fill="#6B7671">p99 ${n1(L.p99)}</text>`;
+  });
+  s+=`<line x1="${left}" y1="${P.length*rowH+12}" x2="${right}" y2="${P.length*rowH+12}" stroke="#C7CDC6"/>`;
+  for(let i=0;i<=4;i++){
+    const v=max*i/4;
+    s+=`<text x="${x(v)}" y="${P.length*rowH+42}" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#6B7671">${n1(v)}</text>`;
+  }
+  s+="</svg>";
+  $("#chart-latency").innerHTML=s;
+}
+latencyChart();
+
+/* ---------- cost chart ---------- */
+function costChart(){
+  const vals=P.map(p=>p.cost.monthly_pkr||0), max=Math.max(...vals)*1.15||1;
+  const W=520,rowH=52,H=P.length*rowH+10,left=104,right=W-90;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Monthly spend by vendor">`;
+  P.forEach((p,i)=>{
+    const y=i*rowH+14, wdt=(right-left)*((p.cost.monthly_pkr||0)/max);
+    s+=`<text x="0" y="${y+13}" font-family="Archivo" font-size="13" font-weight="600" fill="#12181A">${esc(p.label)}</text>`;
+    s+=`<text x="0" y="${y+29}" font-family="IBM Plex Mono" font-size="10" fill="#6B7671">${usd(p.cost.per_1k_usd)}/1k</text>`;
+    s+=`<rect x="${left}" y="${y}" width="${right-left}" height="22" fill="#EFF1ED"/>`;
+    s+=`<rect x="${left}" y="${y}" width="${Math.max(2,wdt)}" height="22" fill="${COL[p.key]}"/>`;
+    s+=`<text x="${left+Math.max(2,wdt)+8}" y="${y+16}" font-family="IBM Plex Mono" font-size="11" fill="#12181A">${pkr(p.cost.monthly_pkr)}</text>`;
+  });
+  s+="</svg>";
+  $("#chart-cost").innerHTML=s;
+}
+costChart();
+
+/* ---------- business panel ---------- */
+const B=DATA.business;
+$("#money-cap").innerHTML = `${n1(DATA.client.monthly_support_contacts)} inbound contacts a month, every one of them triaged by the model. Converted at Rs ${n1(DATA.client.usd_to_pkr)} to the dollar.`;
+$("#biz").innerHTML = B ? `
+  <div class="tablewrap" style="border:0"><table style="min-width:0">
+  <tbody>
+    <tr><td class="rowk">Contacts a month</td><td class="n">${n1(B.monthly_contacts)}</td></tr>
+    <tr><td class="rowk">Cost of handling them by hand</td><td class="n">${pkr(B.human_baseline_pkr)}</td></tr>
+    <tr><td class="rowk">Deflection target</td><td class="n">${pct(B.deflection_target,0)}</td></tr>
+    <tr><td class="rowk">Contacts deflected at that rate</td><td class="n">${n1(B.deflected_contacts)}</td></tr>
+    <tr><td class="rowk">Agent cost removed</td><td class="n">${pkr(B.gross_saving_pkr)}</td></tr>
+    <tr><td class="rowk">API spend on ${esc(P[0].label)}</td><td class="n">${pkr(B.llm_monthly_pkr)}</td></tr>
+    <tr class="best"><td class="rowk"><strong>Net monthly effect</strong></td><td class="n"><strong>${pkr(B.net_saving_pkr)}</strong></td></tr>
+  </tbody></table></div>
+  <p class="cap" style="margin-top:14px">The deflection target is an assumption, not a measurement. It is the number to
+  re-test after two weeks of live traffic, because the whole business case moves with it.</p>` : "";
+
+/* ---------- lede text ---------- */
+$("#acc-lede").innerHTML = `Accuracy is six separate things here, weighted into one number. A model can label the intent
+  perfectly and still be unusable if it tells customers a delivery date it invented, so grounding is scored on its own and
+  reported on its own. Confidence intervals are wide at ${DATA.n_cases} cases: treat differences under about ten points as
+  a tie and widen the eval set before deciding on those.`;
+$("#speed-lede").innerHTML = `The number that matters on WhatsApp is p95, not the mean. One customer in twenty waits at
+  least this long, and that is the customer who gives up and calls the hotline instead. Target is
+  ${n1(DATA.latency_targets.target_p95_ms)} ms.`;
+$("#money-lede").innerHTML = `Rates were checked on ${esc(DATA.pricing_checked_on)}. Prices move often enough that this
+  section has a shelf life measured in weeks.`;
+$("#sens-lede").innerHTML = DATA.stable_winner
+  ? `The same vendor wins under all five weight profiles. That is the strongest thing this report can say: you would reach
+     the same decision even if you disagreed with how the weights were set.`
+  : `The winner changes depending on what is weighted most. That means the recommendation rests on an agreed priority, not
+     on the data alone. Settle the weights first, then read the table.`;
+
+/* ---------- sensitivity ---------- */
+(function(){
+  let h="<thead><tr><th>Weight profile</th><th>Accuracy</th><th>Cost</th><th>Speed</th><th>Integration</th>"
+    + P.map(p=>`<th class="n">${esc(p.label)}</th>`).join("")+"<th>Winner</th></tr></thead><tbody>";
+  DATA.sensitivity.forEach(r=>{
+    const best=Math.max(...P.map(p=>r.scores[p.key]));
+    h+=`<tr><td class="rowk">${esc(r.profile)}</td>`
+      + ["accuracy","cost","latency","integration"].map(k=>`<td class="n">${(r.weights[k]*100).toFixed(0)}%</td>`).join("")
+      + P.map(p=>`<td class="n ${r.scores[p.key]===best?"win-cell":""}">${r.scores[p.key].toFixed(1)}</td>`).join("")
+      + `<td><span class="chip ${r.winner===P[0].key?"g":"a"}">${esc(byKey[r.winner].label)}</span></td></tr>`;
+  });
+  $("#sens-table").innerHTML=h+"</tbody>";
+})();
+
+/* ---------- failures ---------- */
+(function(){
+  let h="<thead><tr><th>Vendor</th><th class=\"n\">Grounding</th><th class=\"n\">Intent</th><th class=\"n\">Unparseable</th><th>Cases</th></tr></thead><tbody>";
+  P.forEach(p=>{
+    const f=p.failures, all=[...new Set([...f.grounding,...f.intent,...f.parse])].sort();
+    h+=`<tr><td class="rowk">${esc(p.label)}</td>`
+      + `<td class="n ${f.grounding.length?"lose-cell":"win-cell"}">${f.grounding.length}</td>`
+      + `<td class="n">${f.intent.length}</td><td class="n">${f.parse.length}</td>`
+      + `<td>${all.length ? all.map(c=>`<span class="chip ${f.grounding.includes(c)?"r":""}">${c}</span>`).join(" ") : '<span class="chip g">clean</span>'}</td></tr>`;
+  });
+  $("#fail-table").innerHTML=h+"</tbody>";
+})();
+
+/* ---------- sample viewer ---------- */
+const S=DATA.samples;
+const sel=$("#case-select");
+sel.innerHTML=S.map((s,i)=>`<option value="${i}">${s.case.id} \u00b7 ${esc(s.case.gold.intent)} \u00b7 ${esc(s.case.lang)} \u00b7 ${esc(s.case.difficulty)}</option>`).join("");
+
+function markChips(sc){
+  const m=[["intent_exact","intent"],["entities_f1","entities"],["action_exact","action"],
+           ["grounding","grounded"],["policy_points","policy"],["json_valid","schema"]];
+  return m.map(([k,lab])=>{
+    const v=sc[k]; const cls=v>=0.999?"g":(v<=0.001?"r":"a");
+    return `<span class="chip ${cls}">${lab} ${(v*100).toFixed(0)}</span>`;
+  }).join("");
+}
+function renderCase(i){
+  const s=S[i]; const c=s.case;
+  $("#case-msg").innerHTML=`<span class="eyebrow">${esc(c.id)} &middot; ${esc(c.lang)} &middot; ${esc(c.difficulty)} &middot; gold intent ${esc(c.gold.intent)}</span>
+    <p class="t">${esc(c.message)}</p>`;
+  let h=`<div class="out gold"><h4>Gold answer <span class="chip">hand-labelled</span></h4>
+    <pre>${esc(JSON.stringify(c.gold,null,2))}</pre>
+    <p class="cap" style="font-size:12px;color:var(--muted);margin:0">Reply must not contain: ${c.must_not_contain.map(x=>`<span class="mono">${esc(x)}</span>`).join(", ")}</p></div>`;
+  P.forEach(p=>{
+    const o=s.outputs[p.key];
+    if(!o){ h+=`<div class="out"><h4>${esc(p.label)}</h4><p class="cap">No record.</p></div>`; return; }
+    if(o.error){ h+=`<div class="out"><h4>${esc(p.label)} <span class="chip r">error</span></h4><pre>${esc(o.error)}</pre></div>`; return; }
+    h+=`<div class="out">
+      <h4>${esc(p.label)} <span class="chip">${n1(o.latency_ms)} ms</span></h4>
+      <pre>${esc(o.raw)}</pre>
+      <div class="marks">${markChips(o.scores)}</div></div>`;
+  });
+  $("#case-outs").innerHTML=h;
+}
+sel.addEventListener("change",()=>renderCase(+sel.value));
+$("#prev-case").onclick=()=>{sel.value=Math.max(0,+sel.value-1);renderCase(+sel.value)};
+$("#next-case").onclick=()=>{sel.value=Math.min(S.length-1,+sel.value+1);renderCase(+sel.value)};
+$("#worst-case").onclick=()=>{
+  let bi=0,bs=-1;
+  S.forEach((s,i)=>{
+    const accs=P.map(p=>s.outputs[p.key]?s.outputs[p.key].scores.intent_exact:null).filter(v=>v!=null);
+    if(accs.length<2) return;
+    const spread=Math.max(...accs)-Math.min(...accs);
+    if(spread>bs){bs=spread;bi=i;}
+  });
+  sel.value=bi;renderCase(bi);
+};
+renderCase(0);
+
+/* ---------- method ---------- */
+const cw=DATA.accuracy_components;
+$("#method-body").innerHTML=`
+<div>
+<h3>How a call is scored</h3>
+<ul class="plain">
+  <li><strong>Schema</strong> (${(cw.json_valid*100).toFixed(0)}%): the reply parses and every field is inside its enum. A reply that fails here scores zero on everything, because in production the ticket would have been silently dropped.</li>
+  <li><strong>Intent</strong> (${(cw.intent_exact*100).toFixed(0)}%): exact match against the hand-set label.</li>
+  <li><strong>Entities</strong> (${(cw.entities_f1*100).toFixed(0)}%): micro-F1 over tracking number, city, and cash-on-delivery amount. Slots that are empty in both gold and prediction are excluded, so a model gains nothing by returning nulls.</li>
+  <li><strong>Action</strong> (${(cw.action_exact*100).toFixed(0)}%): the routing decision, which is what actually determines whether a human sees the ticket.</li>
+  <li><strong>Grounding</strong> (${(cw.grounding*100).toFixed(0)}%): zero if the reply contains any of the inventions listed for that case.</li>
+  <li><strong>Policy</strong> (${(cw.policy_points*100).toFixed(0)}%): share of required facts present, matched across English and Roman Urdu surface forms.</li>
+</ul>
+<h3>Fairness controls</h3>
+<ul class="plain">
+  <li>One prompt file, sent byte for byte to all three. Its hash is printed in the header.</li>
+  <li>Temperature zero everywhere, ${DATA.repeats} repeats per case, so run-to-run variance is visible rather than averaged away.</li>
+  <li>Raw HTTP rather than vendor SDKs, so no vendor gets free retries the others do not.</li>
+  <li>Latency covers the network round trip only, measured on the same machine on the same connection.</li>
+  <li>Vendors matched on tier, not on flagship status. Comparing a frontier model against a small one would answer a question nobody asked.</li>
+</ul>
+</div>
+<div>
+<h3>What this does not tell you</h3>
+<ul class="plain">
+  <li>${DATA.n_cases} cases is a small set. The confidence intervals in the table are wide and two vendors within about ten points are not distinguishable here.</li>
+  <li>Cases were written by one person. They cover the message types support sees most, not the long tail.</li>
+  <li>Latency was measured from one location on one connection on one day. Rerun from the production region before committing to an SLA.</li>
+  <li>Nothing here tests behaviour under load, during an incident, or against adversarial input.</li>
+  <li>Prices were correct on ${esc(DATA.pricing_checked_on)} and change without much notice.</li>
+  <li>No vendor was told this was a benchmark, and no vendor supplied any figure in this report.</li>
+</ul>
+<h3>Pricing caveats carried through</h3>
+<ul class="plain">${DATA.pricing_caveats.map(c=>`<li>${esc(c)}</li>`).join("")}</ul>
+</div>`;
+
+$("#foot").innerHTML = `Prepared for ${esc(DATA.client.name)} &middot; ${esc(DATA.client.sector)}. Regenerate this page with
+  <span class="mono">python report/build_report.py</span> after any new run. Every number above traces back to
+  <span class="mono">results/</span> and nothing was typed in by hand.`;
+</script>
+</body>
+</html>
